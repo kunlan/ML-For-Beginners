@@ -1,0 +1,387 @@
+# स्कikit-learn प्रयोग गरेर एक Regression मोडेल निर्माण गर्नुहोस्: regression चार तरिकाहरू
+
+## शुरुवाती नोट
+
+Linear regression तब प्रयोग गरिन्छ जब हामी **सङ्ख्यात्मक मान** (उदाहरणका लागि, घरको मूल्य, तापक्रम, वा बिक्री) भविष्यवाणी गर्न चाहन्छौं।
+यो इनपुट सुविधाहरू र आउटपुट बिचको सम्बन्धलाई सबैभन्दा राम्रो प्रतिनिधित्व गर्ने एक सिधा रेखा खोजेर काम गर्छ।
+
+यस पाठमा, हामी अधिक उन्नत regression प्रविधिहरूको अन्वेषण गर्नु अघि अवधारणा बुझ्नमा केन्द्रित छौं।
+![Linear vs polynomial regression infographic](../../../../translated_images/ne/linear-polynomial.5523c7cb6576ccab.webp)
+> इन्फोग्राफिक द्वारा [दासानी माडीपाली](https://twitter.com/dasani_decoded)
+## [पाठ अघि क्विज](https://ff-quizzes.netlify.app/en/ml/)
+
+> ### [यो पाठ R मा उपलब्ध छ!](../../../../2-Regression/3-Linear/solution/R/lesson_3.html)
+### परिचय 
+
+अहिले सम्म तपाईंले regression के हो भनी बुझ्नुभयो, विभिन्न नमुना डेटा संग जुन हामीले यो पाठमा प्रयोग गरेका छौं। तपाईंले यसलाई Matplotlib प्रयोग गरी दृश्यमान पनि बनाउनु भएको छ।
+
+अब तपाईं ML का लागि regression मा अझ गहिरो रूपमा जान तयार हुनुहुन्छ। जबकि दृश्यले डेटा बुझ्न मद्दत गर्दछ, मशीन लर्निङको वास्तविक शक्ति _मोडेलहरू तालिम_ मा हुन्छ। मोडेलहरू इतिहासगत डाटामा तालिम दिइन्छ ताकि स्वतः डेटा निर्भरतालाई समातोस, र तपाईंलाई नयाँ डाटाका लागि भविष्यवाणी गर्न दिन्छन्, जुन मोडेलले पहिले देखेको छैन।
+
+यस पाठमा, तपाईं दुई प्रकारका regression बारे थप जान्नुहुनेछ: _आधारभूत linear regression_ र _polynomial regression_, साथै यी प्रविधिहरूको पृष्ठभूमिमा रहेको केही गणित। ती मोडेलहरूले हामीलाई विभिन्न इनपुट डाटामा आधारित कद्दुखुराको मूल्य भविष्यवाणी गर्न मद्दत गर्नेछन्। 
+
+[![ML for beginners - Understanding Linear Regression](https://img.youtube.com/vi/CRxFT8oTDMg/0.jpg)](https://youtu.be/CRxFT8oTDMg "ML for beginners - Understanding Linear Regression")
+
+> 🎥 माथिको छविमा क्लिक गर्नुहोस् linear regression को छोटो भिडियो अवलोकनका लागि।
+
+> यस पाठ्यक्रमले न्यूनतम गणितीय ज्ञान मानिन्छ, र अन्य क्षेत्रका विद्यार्थीहरूको पहुँचयोग्य बनाउन टिप, 🧮 कलआउट, आरेख, र अन्य सिकाइ उपकरणहरू देखिन्छन्।
+
+### पूर्वशर्त
+
+आफूले अहिले सम्म हेरेको कद्दुखुराको डेटा संरचनासँग परिचित हुनुहुन्छ। यो पाठसँग सम्बद्ध _notebook.ipynb_ फाइलमा पूर्वलोड र पूर्वसफा गरिएको छ। फाइलमा, कद्दुखुराको मूल्य प्रति बुसल नयाँ डेटा फ्रेममा देखाइएको छ। सुनिश्चित गर्नुहोस् कि तपाईंले यी नोटबुकहरू Visual Studio Code को कर्नलहरूमा चलाउन सक्नुहुन्छ।
+
+### तयारी
+
+एक सम्झना स्वरुप, तपाईं यो डेटा प्रयोग गरेर यसबारे प्रश्नहरू सोध्न लाग्नुभएको छ।
+
+- कद्दुखुरा कहिले खरीद गर्नु उपयुक्त हुन्छ? 
+- मिनिएचर कद्दुखुराहरूको केसको मूल्य कति अपेक्षा गर्न सकिन्छ?
+- के म तिनीहरू आधा-बुसल बास्केटमा किन्ने कि 1 1/9 बुसल बाकसमा?
+
+यस डेटा बुझ्न जारी राखौं।
+
+अघिल्लो पाठमा, तपाईंले Pandas डेटा फ्रेम सिर्जना गरी मूल dataset को केही भाग भर्नुभयो र मूल्य बुसल द्वारा मानकीकृत गर्नुभयो। त्यसरी तपाईंले लगभग ४०० डेटाप्वाइन्ट मात्र जम्मा गर्न सक्नुभयो र ती पनि सिर्फ पतझड महिनाका लागि मात्र।
+
+यस पाठसँग सम्बद्ध नोटबुकमा पूर्वलोड गरिएको डेटा हेर्नुहोस्। डेटा पूर्वलोड गरिएको छ र प्रारम्भिक scatterplot ले महिनाको डेटा देखाउँछ। सायद डेटा सफा गरेर यसको प्रकृति बारे थप विवरण प्राप्त गर्न सकिन्छ।
+
+## एक linear regression रेखा
+
+पाठ १ मा सिकेझैं, linear regression अभ्यासको लक्ष्य रेखा प्लट गर्न सक्षम हुनु हो जसले:
+
+- **चल भेरियबल सम्बन्ध देखाउने**। भेरियबलहरूको सम्बन्ध देखाउने
+- **भविष्यवाणी गर्ने**। नयाँ डेटाप्वाइन्ट त्यो रेखाप्रति कहाँ पर्नेछ भन्ने सही भविष्यवाणी गर्ने।
+
+सामान्यतया **Least-Squares Regression** यस्तो प्रकारको रेखा तान्न प्रयोग हुन्छ। "Least-Squares" शब्दले मोडेलको कुल त्रुटि कम गर्न प्रक्रियालाई जनाउँछ। प्रत्येक डेटाप्वाइन्टको लागि, हामी वास्तविक बिन्दु र regression लाइन बीचको ठाडो दूरी (residual भनिन्छ) मापन गर्छौं।
+
+हामी यी दूरीहरूलाई दुई कारणले वर्ग गर्नछौं:
+
+1. **दिशा भन्दा परिमाणलाई महत्व दिनु:** -५ को गल्तीलाई +५ को गल्ती जस्तै व्यवहार गर्न चाहन्छौं। वर्ग गर्दा सबै मानहरू सकरात्मक हुन्छन्।
+
+2. **अत्यधिक भिन्नतालाई दण्डित गर्नु:** वर्ग गर्दा ठूलो त्रुटिहरू बढि तौल पाउँछन्, जसले रेखालाई टाढा रहेका बिन्दुहरू नजिक राख्न बाध्य पार्छ।
+
+त्यसपछि यी सबै वर्ग मानहरू जोडिन्छन्। हाम्रो लक्ष्य यो रेखा पत्ता लगाउनु हो जहाँ यो अन्तिम योग सबैभन्दा कम हुन्छ—त्यसैले "Least-Squares" को नाम।
+
+> **🧮 मलाई गणित देखाऊ** 
+>
+> यस रेखालाई, जसलाई _line of best fit_ भनिन्छ, [एक समीकरण](https://en.wikipedia.org/wiki/Simple_linear_regression) द्वारा व्यक्त गर्न सकिन्छ:
+>
+> ```
+> Y = a + bX
+> ```
+>
+> `X` 'व्याख्यात्मक भेरियबल' हो। `Y` 'आश्रित भेरियबल' हो। रेखाको ढलान `b` हो र `a` y-intercept हो, जुन `X = 0` हुँदा `Y` को मान हो।
+>
+>![ढलान गणना](../../../../translated_images/ne/slope.f3c9d5910ddbfcf9.webp)
+>
+> पहिलो, ढलान `b` गणना गर्नुहोस्। इन्फोग्राफिक [जेन लूपर](https://twitter.com/jenlooper) द्वारा
+>
+> अर्को शब्दमा, हाम्रो कद्दुखुराको डाटाबाट प्रश्न गर्दा: "महिना अनुसार प्रति बुसल कद्दुखुराको मूल्यको भविष्यवाणी", `X` मूल्य जनाउँछ र `Y` बिक्री महिना जनाउँछ। 
+>
+>![समीकरण पुरा गर्नुहोस्](../../../../translated_images/ne/calculation.a209813050a1ddb1.webp)
+>
+> Y को मान गणना गर्नुहोस्। यदि तपाईं लगभग $४ तिर्दै हुनुहुन्छ भने त्यो अप्रिल हुनुपर्छ! इन्फोग्राफिक [जेन लूपर](https://twitter.com/jenlooper) द्वारा
+>
+> गणितले रेखाको ढलान प्रदर्शन गर्नुपर्छ, जुन सँग intercept लाई पनि निर्भर गर्दछ, जहाँ `X = 0` हुँदा `Y` कहाँ हुन्छ।
+>
+> यी मानहरूको गणना विधि तपाईंले [Math is Fun](https://www.mathsisfun.com/data/least-squares-regression.html) वेब साइटमा देख्न सक्नुहुन्छ। यो [Least-squares गणक](https://www.mathsisfun.com/data/least-squares-calculator.html) मा पनि हेर्नुहोस् जसले सङ्ख्याहरूको मानले रेखामा कसरी प्रभाव पार्छ।
+
+## सहसंबन्ध
+
+अझ एक पद बुझ्नुपर्छ जुन हो **सहसंबन्ध गुणांक** दिने X र Y भेरियबलहरू बीच। scatterplot प्रयोग गरेर तपाईं यस गुणांकलाई छिटो देख्न सक्नुहुन्छ। डेटाप्वाइन्टहरू राम्रोसँग रेखामा छरिएका छन् भने उच्च सहसंबन्ध हुन्छ, तर यदि डेटाप्वाइन्टहरू X र Y बीच जहाँसुकै छरिएका छन् भने कम सहसंबन्ध हुन्छ।
+
+एक राम्रो linear regression मोडेल त्यसले हुनेछ जसको सहसंबन्ध गुणांक उच्च (0 भन्दा निकट 1) हुनेछ र Least-Squares Regression विधि प्रयोग गरी regression लाइन हुनेछ।
+
+✅ यस पाठसँग सम्बद्ध नोटबुक सञ्चालन गरी महिना र मूल्य बीच scatterplot हेर्नुहोस्। कद्दुखुरा बिक्रीका लागि महिना र मूल्यको सम्बन्ध तपाईंको scatterplot दृश्य व्याख्याअनुसार उच्च वा न्यून सहसंबन्ध देखाउँछ? यदि तपाईं `महिना` सट्टा *वर्षको दिन* (जस्तै वर्षको शुरुदेखि दिनहरूको संख्या) जस्ता थप सूक्ष्म मापन प्रयोग गर्नु भयो भने के त्यो परिवर्तन हुन्छ?
+
+तलको कोडमा, हामीले डेटा सफा गरेको र `new_pumpkins` नामक डेटा फ्रेम प्राप्त गरेको मान्दैछौं, जस्तै:
+
+ID | महिना | वर्षको_दिन | भेराइटी | सहर | प्याकेज | न्यून मूल्य | उच्च मूल्य | मूल्य
+---|-------|------------|---------|------|---------|------------|------------|-------
+70 | 9 | 267 | PIE TYPE | BALTIMORE | 1 1/9 बुसल कार्टन | 15.0 | 15.0 | 13.636364
+71 | 9 | 267 | PIE TYPE | BALTIMORE | 1 1/9 बुसल कार्टन | 18.0 | 18.0 | 16.363636
+72 | 10 | 274 | PIE TYPE | BALTIMORE | 1 1/9 बुसल कार्टन | 18.0 | 18.0 | 16.363636
+73 | 10 | 274 | PIE TYPE | BALTIMORE | 1 1/9 बुसल कार्टन | 17.0 | 17.0 | 15.454545
+74 | 10 | 281 | PIE TYPE | BALTIMORE | 1 1/9 बुसल कार्टन | 15.0 | 15.0 | 13.636364
+
+> डेटा सफा गर्नको लागि कोड [`notebook.ipynb`](notebook.ipynb) मा उपलब्ध छ। हामीले अघिल्लो पाठजस्तै सफाइ क्रियाकलापहरू गर्यौं र `DayOfYear` स्तम्भ तलको अभिव्यक्ति प्रयोग गरेर गणना गर्यौं:
+
+```python
+day_of_year = pd.to_datetime(pumpkins['Date']).apply(lambda dt: (dt-datetime(dt.year,1,1)).days)
+```
+
+अब तपाईंले linear regression पछाडिको गणित बुझ्नुभयो, आउनुहोस् Regression मोडेल बनाउँछौं जसले कुन कद्दुखुराको प्याकेजमा उत्तम मूल्य आउनेछ भनी भविष्यवाणी गर्न सकोस्। कोई पनि व्यक्ति जसले पर्व कद्दुखुरा खेतीका लागि किन्नेछ, यो जानकारी उपयोगी हुनेछ।
+
+## सहसंबन्ध खोज्दै
+
+[![ML for beginners - Looking for Correlation: The Key to Linear Regression](https://img.youtube.com/vi/uoRq-lW2eQo/0.jpg)](https://youtu.be/uoRq-lW2eQo "ML for beginners - Looking for Correlation: The Key to Linear Regression")
+
+> 🎥 माथिको छविमा क्लिक गर्नुहोस् सहसंबन्धको छोटो भिडियो अवलोकनका लागि।
+
+अघिल्लो पाठबाट तपाईंले देख्नुभएको होला कि विभिन्न महिनाहरुको औसत मूल्य यसप्रकार देखिन्छ:
+
+<img alt="Average price by month" src="../../../../translated_images/ne/barchart.a833ea9194346d76.webp" width="50%"/>
+
+यसले केही सहसंबन्ध हुनुपर्छ भन्ने संकेत गर्दछ, र हामी `Month` र `Price`, वा `DayOfYear` र `Price` बीचको सम्बन्ध पूर्वानुमान गर्न linear regression मोडेल तालिम दिन सक्दछौं। तल scatter plot ले पछिल्लो सम्बन्ध देखाउँछ:
+
+<img alt="Scatter plot of Price vs. Day of Year" src="../../../../translated_images/ne/scatter-dayofyear.bc171c189c9fd553.webp" width="50%" /> 
+
+अब `corr` फंक्शन प्रयोग गरेर सहसंबन्ध छ कि छैन जाँचौं:
+
+```python
+print(new_pumpkins['Month'].corr(new_pumpkins['Price']))
+print(new_pumpkins['DayOfYear'].corr(new_pumpkins['Price']))
+```
+
+सहसंबन्ध धेरै कम देखिन्छ, -0.15 `Month` द्वारा र -0.17 `DayOfMonth` द्वारा, तर अर्को महत्त्वपूर्ण सम्बन्ध हुन सक्छ। भिन्न-भिन्न कद्दुखुरा भेराइटीहरूका मूल्य भिन्न क्लस्टरहरू जस्तो देखिन्छ। यस अनुमानी पुष्टि गर्नको लागि, प्रत्येक कद्दुखुरा वर्गलाई भिन्न रंगले प्लट गरौं। `scatter` प्लटिङ फंक्शनलाई `ax` प्यारामिटर दिएर हामी सबै बिन्दुहरू एउटै ग्राफमा हाल्न सक्छौं:
+
+```python
+ax=None
+colors = ['red','blue','green','yellow']
+for i,var in enumerate(new_pumpkins['Variety'].unique()):
+    df = new_pumpkins[new_pumpkins['Variety']==var]
+    ax = df.plot.scatter('DayOfYear','Price',ax=ax,c=colors[i],label=var)
+```
+
+<img alt="Scatter plot of Price vs. Day of Year" src="../../../../translated_images/ne/scatter-dayofyear-color.65790faefbb9d54f.webp" width="50%" /> 
+
+हाम्रो अनुसन्धानले देखाउँछ कि भेराइटीले कुल मूल्यमा बिक्री मितिवाट बढी प्रभाव पार्छ। हामी यसलाई बार ग्राफबाट पनि देख्न सक्छौं:
+
+```python
+new_pumpkins.groupby('Variety')['Price'].mean().plot(kind='bar')
+```
+
+<img alt="Bar graph of price vs variety" src="../../../../translated_images/ne/price-by-variety.744a2f9925d9bcb4.webp" width="50%" /> 
+
+अहिले एक कद्दुखुरा भेराइटी, 'pie type', मा मात्र ध्यान दिनुहोस् र मिति मूल्यमा कस्तो प्रभाव पार्छ हेर्नुहोस्:
+
+```python
+pie_pumpkins = new_pumpkins[new_pumpkins['Variety']=='PIE TYPE']
+pie_pumpkins.plot.scatter('DayOfYear','Price') 
+```
+<img alt="Scatter plot of Price vs. Day of Year" src="../../../../translated_images/ne/pie-pumpkins-scatter.d14f9804a53f927e.webp" width="50%" /> 
+
+यदि हामी अब `Price` र `DayOfYear` बिच सहसंबन्ध `corr` फंक्शनले गणना गर्छौं भने `-0.27` जस्तो भेटिन्छ - जसले भविष्यवाणी गर्न योग्य मोडेल तालिम दिन सुझाउँछ।
+
+> linear regression मोडेल तालिम दिने पहिले हाम्रो डेटा सफा हुनु पर्छ। Linear regression खाली मानहरू र मिसिंग मानहरूसँग राम्रोसँग काम गर्दैन, त्यसैले सबै खाली कोशहरू हटाउनु उचित हुन्छ:
+
+```python
+pie_pumpkins.dropna(inplace=True)
+pie_pumpkins.info()
+```
+
+अर्को तरिका त हो कि ती खाली मानहरूलाई सोही स्तम्भको औसत मानले पूरै दिनु।
+
+## सरल Linear regression
+
+[![ML for beginners - Linear and Polynomial Regression using Scikit-learn](https://img.youtube.com/vi/e4c_UP2fSjg/0.jpg)](https://youtu.be/e4c_UP2fSjg "ML for beginners - Linear and Polynomial Regression using Scikit-learn")
+
+> 🎥 माथिको छविमा क्लिक गर्नुहोस् linear र polynomial regression को छोटो भिडियो अवलोकनका लागि।
+
+हाम्रो Linear Regression मोडेल तालिम दिन हामी **Scikit-learn** पुस्तकालय प्रयोग गर्नेछौं।
+
+```python
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+```
+
+हामी इनपुट मानहरू (फिचरहरू) र अपेक्षित आउटपुट (लेबल) फरक numpy array मा अलग पार्छौं:
+
+```python
+X = pie_pumpkins['DayOfYear'].to_numpy().reshape(-1,1)
+y = pie_pumpkins['Price']
+```
+
+> ध्यान दिनुहोस् कि इनपुट डेटा लाई `reshape` गर्नुपर्यो ताकि Linear Regression प्याकेज यसलाई ठीकसँग बुझ्न सकोस्। Linear Regression ले 2D-array इनपुट चाहन्छ, जहाँ array को प्रत्येक पंक्ति इनपुट फिचरको भेक्टर हुन्छ। हाम्रो अवस्थामा, एक मात्र इनपुट छ - त्यसैले N×1 आकारको array चाहिन्छ, जहाँ N dataset को आकार हो।
+
+त्यसपछि, हामी डाटालाई तालिम र परीक्षणको लागि दुई भागमा विभाजन गर्नुपर्छ ताकि तालिम पछि मोडेललाई मान्य गर्न सकियोस्:
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+```
+
+अन्तमा, Linear Regression मोडेलको तालिम लिन दुई पंक्तिहरू मात्र आवश्यक हुन्छ। हामी `LinearRegression` वस्तु परिभाषित गर्छौं, र `fit` विधि प्रयोग गरी यसलाई डाटामा फिट गर्छौं:
+
+```python
+lin_reg = LinearRegression()
+lin_reg.fit(X_train,y_train)
+```
+
+`fit` गरेपछि `LinearRegression` वस्तु regresssion का सबै coefficients राख्छ, जुन `.coef_` प्रोपर्टी प्रयोग गरेर पहुँच गर्न सकिन्छ। हाम्रा अवस्थामा, त्यहाँ एउटा मात्र coefficient छ, जुन करीव `-0.017` हुनुपर्छ। यसको मतलब मूल्यहरू समयसँग अलिकति घट्ने देखिन्छ, तर धेरै होइन, दैनिक लगभग 2 सेन्ट। हामी regresssion को Y-अक्षसंगको intersection point `lin_reg.intercept_` प्रयोग गरेर पनि पहुँच गर्न सक्छौं - हाम्रो अवस्थामा यो करीब `21` हुनेछ, जुन वर्षको सुरुमै मूल्य जनाउँछ।
+
+हाम्रो मोडेल कति शुद्ध छ भनी हेर्नको लागि, हामी परीक्षण डेटासेटमा मूल्यहरू अनुमान गर्न सक्छौं, र त्यसपछि हाम्रा अनुमानहरू अपेक्षित मूल्यहरूसंग कति नजिक छन् मापन गर्न सक्छौं। यो mean square error (MSE) मेट्रिक प्रयोग गरेर गर्न सकिन्छ, जुन अपेक्षित र अनुमानित मूल्यहरू बीचको सबै वर्गयुक्त भिन्नताहरूको औसत हो।
+
+```python
+pred = lin_reg.predict(X_test)
+
+mse = np.sqrt(mean_squared_error(y_test,pred))
+print(f'Mean error: {mse:3.3} ({mse/np.mean(pred)*100:3.3}%)')
+```
+
+हाम्रो त्रुटि करीव 2 points छ, जुन लगभग 17% हो। त्यति राम्रो छैन। मोडेल गुणस्तरको अर्को संकेतक हो **coefficient of determination**, जुन यसरी प्राप्त गर्न सकिन्छ:
+
+```python
+score = lin_reg.score(X_train,y_train)
+print('Model determination: ', score)
+```
+यदि मान 0 हो भने, यसको अर्थ मोडेल इनपुट डेटालाई ध्यान दिँदैन, र *worst linear predictor* को रूपमा कार्य गर्छ, जुन केवल परिणामको औसत मान हो। मान 1 को अर्थ हामी सबै अपेक्षित आउटपुटलाई पूर्ण रूपमा अनुमान गर्न सक्छौं। हाम्रा अवस्थामा, coefficient लगभग 0.06 छ, जुन धेरै कम हो।
+
+हामी परीक्षण डेटालाई regresssion लाइनसँगै प्लट गरेर पनि राम्रोसँग हेर्न सक्छौं कि regresssion हाम्रो अवस्थामा कसरी काम गर्छ:
+
+```python
+plt.scatter(X_test,y_test)
+plt.plot(X_test,pred)
+```
+
+<img alt="Linear regression" src="../../../../translated_images/ne/linear-results.f7c3552c85b0ed1c.webp" width="50%" />
+
+## Polynomial Regression
+
+अर्को प्रकारको Linear Regression हो Polynomial Regression। कतिपय अवस्थामा चरहरूबीच रेखीय सम्बन्ध हुन्छ - भोल्युम अनुसार कद्दू जति ठूलो हुन्छ, मूल्य उति नै बढी हुन्छ - तर कहिलेकाहीं यी सम्बन्धहरू सिधा रेखा वा तलको सतहको रूपमा देखाउन सकिंदैन।
+
+✅ यहाँ [अरु केही उदाहरणहरू](https://online.stat.psu.edu/stat501/lesson/9/9.8) छन्, जसमा Polynomial Regression प्रयोग गर्न सकिन्छ।
+
+Date र Price बीचको सम्बन्धलाई पुनः हेर्नुहोस्। के यो scatterplot अवश्य पनि सिधा रेखाले विश्लेषण गरिनुपर्छ जस्तो देखिन्छ? की मूल्यहरू परिवर्तन हुन सक्दैनन्? यस अवस्थामा, तपाईं polynomial regression प्रयास गर्न सक्नुहुन्छ।
+
+✅ Polynomials तिनीहरू गणितीय अभिव्यक्तिहरू हुन् जसले एक वा बढी चरहरू र coefficients समावेश गर्न सक्छ।
+
+Polynomial regression ले वक्र रेखा बनाउँछ जसले गैर-रेखीय डेटा राम्रोसँग फिट गर्छ। हाम्रो अवस्थामा, यदि हामीले इनपुट डेटामा squared `DayOfYear` चर समावेश गर्यौं भने, हामी हाम्रो डेटालाई एक पराबोलिक वक्रसँग फिट गर्न सक्षम हुनेछौं, जसको न्यूनतम वर्षभित्र कुनै निश्चित बिन्दुमा हुनेछ।
+
+Scikit-learn मा उपयोगी [pipeline API](https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.make_pipeline.html?highlight=pipeline#sklearn.pipeline.make_pipeline) समावेश छ जुन डाटा प्रक्रिया गर्ने फरक चरणहरूलाई जोड्न प्रयोग हुन्छ। **pipeline** भनेको धेरै **estimators** को श्रृंखला हो। हाम्रो अवस्थामा, हामी यस्तो pipeline बनाउँछौं जसले पहिले polynomial features मोडेलमा थप्छ, अनि regresssion तालिम दिन्छ:
+
+```python
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+
+pipeline = make_pipeline(PolynomialFeatures(2), LinearRegression())
+
+pipeline.fit(X_train,y_train)
+```
+
+`PolynomialFeatures(2)` प्रयोग गर्नाले हामी इनपुट डेटाबाट सबै दोस्रो-श्रेणी polynomial समावेश गर्छौं। हाम्रो अवस्थामा यसले मात्र `DayOfYear`² मतलब दिन्छ, तर दुई इनपुट चर X र Y भएमा यसले X², XY र Y² थप्छ। हामी उच्चतम डिग्री polynomial पनि प्रयोग गर्न सक्छौं।
+
+Pipelines मूल `LinearRegression` वस्तु जस्तै प्रयोग गर्न सकिन्छ, अर्थात् हामी pipeline लाई `fit` गर्न सक्छौं, अनि `predict` प्रयोग गरेर परिणाम पाउन सक्छौं। यो ग्राफले परीक्षण डाटा र नजिकको वक्र देखाउँछ:
+
+<img alt="Polynomial regression" src="../../../../translated_images/ne/poly-results.ee587348f0f1f60b.webp" width="50%" />
+
+Polynomial Regression को प्रयोगले हामी सँधै अलि कम MSE र बढी determination पाउन सक्छौं, तर त्यति धेरै हुँदैन। हामीले अरु features पनि ध्यान दिनु पर्छ!
+
+> तपाईंले देख्नुभयो होला कि न्यूनतम कद्दू मूल्यहरू लगभग Halloween का आसपास अवलोकन गरिन्छ। यसलाई कसरी व्याख्या गर्नुहुन्छ?
+
+🎃 बधाई छ, तपाईंले यस्तो मोडेल बनाउनु भयो जसले pie pumpkins को मूल्य अनुमान गर्न मद्दत गर्दछ। तपाईं सम्भवतः यही प्रक्रिया सबै कद्दू प्रकारको लागि दोहोर्याउन सक्नुहुन्छ, तर त्यो काम थकाउ हुनेछ। अब हामी सिकौं कसरी हाम्रो मोडेलमा कद्दूको भिन्नता लिन सकिन्छ!
+
+## Categorical Features
+
+सपनाको संसारमा, हामीले एउटै मोडेल प्रयोग गरेर फरक फरक कद्दू भेराइटीहरूको मूल्य अनुमान गर्न चाहन्छौं। तर `Variety` स्तम्भ `Month` जस्ता स्तम्भहरू जस्तै छैन, किनकि यसले गैर-सांख्यिक मानहरू समावेश गर्दछन्। यस्ता स्तम्भहरूलाई **categorical** भनिन्छ।
+
+[![ML for beginners - Categorical Feature Predictions with Linear Regression](https://img.youtube.com/vi/DYGliioIAE0/0.jpg)](https://youtu.be/DYGliioIAE0 "ML for beginners - Categorical Feature Predictions with Linear Regression")
+
+> 🎥 माथिको छवि क्लिक गरेर categorical features प्रयोग गर्ने छोटो भिडियो हेर्न सक्नुहुन्छ।
+
+यहाँ तपाईंले देख्न सक्नुहुन्छ कि औसत मूल्य भेराइटीमा कसरी निर्भर गर्दछ:
+
+<img alt="Average price by variety" src="../../../../translated_images/ne/price-by-variety.744a2f9925d9bcb4.webp" width="50%" />
+
+भेराइटीलाई ध्यानमा लिन, पहिले हामीले यसलाई सांख्यिक मानमा रूपान्तरण गर्नुपर्छ, वा **encode** गर्नुपर्छ। यसका केही तरिकाहरू छन्:
+
+* साधारण **numeric encoding** ले विभिन्न भेराइटीहरूको तालिका बनाउनेछ, र त्यसपछि भेराइटी नामलाई तालिकामा रहेको index द्वारा प्रतिस्थापन गर्नेछ। यो linear regression का लागि उत्तम होइन, किनकि linear regression ले वास्तवमा index को संख्यात्मक मान लिन्छ र परिणाममा यसलाई केही coefficient द्वारा गुणा गरेर थप्छ। हाम्रो अवस्थामा, index नम्बर र मूल्य बीचको सम्बन्ध स्पष्ट रूपमा गैर-रेखीय छ, यहाँसम्म कि यदि हामीले indices लाई कुनै विशिष्ट क्रममा राख्यौं भने पनि।
+* **One-hot encoding** ले `Variety` स्तम्भलाई 4 फरक स्तम्भहरूमा बदल्नेछ, प्रत्येक भेराइटीका लागि एउटै। प्रत्येक स्तम्भमा `1` हुनेछ यदि त्यो पङ्क्ति उक्त भेराइटीको हो, नत्र `0`। यसको मतलब regresssion मा चार वटा coefficients हुनेछन्, प्रत्येक कद्दू भेराइटीको लागि, जुन उक्त भेराइटीका लागि "शुरुमा मूल्य" (वा "थप मूल्य") को जिम्मेवार हुनेछ।
+
+तलको कोडले कसरी variety लाई one-hot encode गर्न सकिन्छ देखाउँछ:
+
+```python
+pd.get_dummies(new_pumpkins['Variety'])
+```
+
+ ID | FAIRYTALE | MINIATURE | MIXED HEIRLOOM VARIETIES | PIE TYPE
+----|-----------|-----------|--------------------------|----------
+70 | 0 | 0 | 0 | 1
+71 | 0 | 0 | 0 | 1
+... | ... | ... | ... | ...
+1738 | 0 | 1 | 0 | 0
+1739 | 0 | 1 | 0 | 0
+1740 | 0 | 1 | 0 | 0
+1741 | 0 | 1 | 0 | 0
+1742 | 0 | 1 | 0 | 0
+
+one-hot encoded variety लाई इनपुट बनाएर linear regression तालिम दिन, हामीले सही तरिकाले `X` र `y` डेटा initialize गर्नुपर्छ:
+
+```python
+X = pd.get_dummies(new_pumpkins['Variety'])
+y = new_pumpkins['Price']
+```
+
+बाकी कोड भनेको Linear Regression तालिम दिन माथि प्रयोग गरिएको को संग नै छ। यदि तपाईं प्रयास गर्नुहुन्छ भने, mean squared error लगभग उस्तै हुने देख्नुहुनेछ, तर हामी धेरै उच्च coefficient of determination (~77%) पाउँछौं। अझ शुद्ध अनुमान पाउनका लागि, हामी धेरै categorical features र साथै सांख्यिक features जस्तै `Month` वा `DayOfYear` लाई पनि विचार गर्न सक्छौं। एउटा ठूलो array बनाउनका लागि हामी `join` प्रयोग गर्न सक्छौं:
+
+```python
+X = pd.get_dummies(new_pumpkins['Variety']) \
+        .join(new_pumpkins['Month']) \
+        .join(pd.get_dummies(new_pumpkins['City'])) \
+        .join(pd.get_dummies(new_pumpkins['Package']))
+y = new_pumpkins['Price']
+```
+
+यहाँ हामीले `City` र `Package` type पनि ध्यानमा राखेका छौं, जसले हामीलाई MSE 2.84 (10%) र determination 0.94 दिन्छ!
+
+## सबैलाई मिलाएर
+
+सबै भन्दा राम्रो मोडेल बनाउन, हामी माथिको उदाहरणको संयुक्त (one-hot encoded categorical + numeric) डेटा र Polynomial Regression एकसाथ प्रयोग गर्न सक्छौं। तपाईंको सहूलियतका लागि पूर्ण कोड यहाँ छ:
+
+```python
+# प्रशिक्षण डेटालाई सेट अप गर्नुहोस्
+X = pd.get_dummies(new_pumpkins['Variety']) \
+        .join(new_pumpkins['Month']) \
+        .join(pd.get_dummies(new_pumpkins['City'])) \
+        .join(pd.get_dummies(new_pumpkins['Package']))
+y = new_pumpkins['Price']
+
+# प्रशिक्षण-टेस्ट विभाजन बनाउनुहोस्
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+# पाइपलाइन सेटअप र प्रशिक्षण गर्नुहोस्
+pipeline = make_pipeline(PolynomialFeatures(2), LinearRegression())
+pipeline.fit(X_train,y_train)
+
+# परीक्षण डेटाका लागि परिणामहरू पूर्वानुमान गर्नुहोस्
+pred = pipeline.predict(X_test)
+
+# MSE र निर्धारण गणना गर्नुहोस्
+mse = np.sqrt(mean_squared_error(y_test,pred))
+print(f'Mean error: {mse:3.3} ({mse/np.mean(pred)*100:3.3}%)')
+
+score = pipeline.score(X_train,y_train)
+print('Model determination: ', score)
+```
+
+यसले हामीलाई लगभग 97% निर्धारण coefficient र MSE=2.23 (~8% अनुमान त्रुटि) दिनेछ।
+
+| मोडेल | MSE | निर्धारण |
+|-------|-----|---------------|
+| `DayOfYear` Linear | 2.77 (17.2%) | 0.07 |
+| `DayOfYear` Polynomial | 2.73 (17.0%) | 0.08 |
+| `Variety` Linear | 5.24 (19.7%) | 0.77 |
+| सबै features Linear | 2.84 (10.5%) | 0.94 |
+| सबै features Polynomial | 2.23 (8.25%) | 0.97 |
+
+🏆 राम्रो काम! तपाईंले एउटा पाठमा चार Regression मोडेल बनाउनु भयो, र मोडेल गुणस्तरलाई 97% सम्म सुधार्नुभयो। Regression को अन्तिम खण्डमा, तपाईंले Logistic Regression को बारेमा सिक्नु हुनेछ जुन वर्गहरू निर्धारण गर्न प्रयोग हुन्छ।
+
+---
+## 🚀Challenge
+
+यस नोटबुकमा विभिन्न चरहरू परीक्षण गरेर हेर्नुहोस् कि सहसंबन्ध र मोडेलको शुद्धताबीच कस्तो सम्बन्ध हुन्छ।
+
+## [पाठ पूरा गरे पछिको क्विज](https://ff-quizzes.netlify.app/en/ml/)
+
+## पुनरावलोकन र आत्म-अध्ययन
+
+यस पाठमा हामीले Linear Regression सिक्यौं। Regression का अन्य महत्वपूर्ण प्रकारहरू पनि छन्। Stepwise, Ridge, Lasso र Elasticnet प्रविधिहरूको बारेमा पढ्नुहोस्। थप अध्ययनका लागि राम्रो कोर्स हो [Stanford Statistical Learning course](https://online.stanford.edu/courses/sohs-ystatslearning-statistical-learning)
+
+## कार्य 
+
+[मोडेल बनाउनुहोस्](assignment.md)
+
+---
+
+<!-- CO-OP TRANSLATOR DISCLAIMER START -->
+**अस्वीकरण**:
+यस दस्तावेजलाई AI अनुवाद सेवा [Co-op Translator](https://github.com/Azure/co-op-translator) को माध्यमबाट अनुवाद गरिएको हो। हामी शुद्धताका लागि प्रयासरत छौं भने पनि, कृपया जानकार हुनुहोस् कि स्वचालित अनुवादमा त्रुटि वा अशुद्धता हुन सक्छ। मूल दस्तावेज यसको मूल भाषामा नै अधिकारिक स्रोत मान्नुपर्छ। महत्वपूर्ण जानकारीका लागि व्यावसायिक मानव अनुवाद सिफारिस गरिन्छ। यस अनुवादको प्रयोगबाट उत्पन्न हुने कुनै पनि गलतफहमी वा दुरव्याख्याका लागि हामी उत्तरदायी छैनौं।
+<!-- CO-OP TRANSLATOR DISCLAIMER END -->
